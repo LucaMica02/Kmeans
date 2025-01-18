@@ -1,0 +1,440 @@
+input2D.inp
+Computation: 0.017868 seconds
+Computation: 0.011945 seconds
+
+input2D2.inp
+Computation: 0.000013 seconds
+Computation: 0.000078 seconds
+
+input10D.inp
+Computation: 0.002790 seconds
+Computation: 0.002715 seconds
+
+input20D.inp
+Computation: 0.152518 seconds
+Computation: 0.116187 seconds
+
+input100D.inp
+Computation: 0.908332 seconds
+Computation: 0.513038 seconds
+
+custom.inp
+Computation: 0.006333 seconds
+Computation: 0.005567 seconds
+
+custom2.inp
+Computation: 0.050378 seconds
+Computation: 0.026139 seconds
+
+custom3.inp
+Computation: 0.000091 seconds
+Computation: 0.000183 seconds
+
+custom4.inp
+Computation: 0.005687 seconds
+Computation: 0.005655 seconds
+
+custom5.inp
+Computation: 0.099795 seconds
+Computation: 0.058372 seconds
+
+custom6.inp
+Computation: 0.028657 seconds
+Computation: 0.021829 seconds
+
+input2D.inp
+Computation: 0.018807 seconds
+Computation: 0.012161 seconds
+
+input2D2.inp
+Computation: 0.000007 seconds
+Computation: 0.000108 seconds
+
+input10D.inp
+Computation: 0.001861 seconds
+Computation: 0.002076 seconds
+
+input20D.inp
+Computation: 0.144927 seconds
+Computation: 0.110816 seconds
+
+input100D.inp
+Computation: 0.790638 seconds
+Computation: 0.559409 seconds
+
+custom.inp
+Computation: 0.005045 seconds
+Computation: 0.004885 seconds
+
+custom2.inp
+Computation: 0.047288 seconds
+Computation: 0.037100 seconds
+
+custom3.inp
+Computation: 0.000105 seconds
+Computation: 0.000285 seconds
+
+custom4.inp
+Computation: 0.005568 seconds
+Computation: 0.004467 seconds
+
+custom5.inp
+Computation: 0.091123 seconds
+Computation: 0.062692 seconds
+
+custom6.inp
+Computation: 0.031898 seconds
+Computation: 0.018159 seconds
+
+input2D.inp
+Computation: 0.015915 seconds
+Computation: 0.012796 seconds
+
+input2D2.inp
+Computation: 0.000008 seconds
+Computation: 0.000092 seconds
+
+input10D.inp
+Computation: 0.001928 seconds
+Computation: 0.001428 seconds
+
+input20D.inp
+Computation: 0.160296 seconds
+Computation: 0.088076 seconds
+
+input100D.inp
+Computation: 0.799040 seconds
+Computation: 0.484803 seconds
+
+custom.inp
+Computation: 0.006701 seconds
+Computation: 0.003947 seconds
+
+custom2.inp
+Computation: 0.050522 seconds
+Computation: 0.038848 seconds
+
+custom3.inp
+Computation: 0.000123 seconds
+Computation: 0.000225 seconds
+
+custom4.inp
+Computation: 0.005589 seconds
+Computation: 0.004535 seconds
+
+custom5.inp
+Computation: 0.084978 seconds
+Computation: 0.046035 seconds
+
+custom6.inp
+Computation: 0.029370 seconds
+Computation: 0.016359 seconds
+
+input2D.inp
+Computation: 0.016084 seconds
+Computation: 0.013205 seconds
+
+input2D2.inp
+Computation: 0.000007 seconds
+Computation: 0.000062 seconds
+
+input10D.inp
+Computation: 0.003534 seconds
+Computation: 0.001965 seconds
+
+input20D.inp
+Computation: 0.169373 seconds
+Computation: 0.105921 seconds
+
+input100D.inp
+Computation: 0.964232 seconds
+Computation: 0.519423 seconds
+
+custom.inp
+Computation: 0.004979 seconds
+Computation: 0.002749 seconds
+
+custom2.inp
+Computation: 0.056825 seconds
+Computation: 0.036577 seconds
+
+custom3.inp
+Computation: 0.000106 seconds
+Computation: 0.000183 seconds
+
+custom4.inp
+Computation: 0.006157 seconds
+Computation: 0.006289 seconds
+
+custom5.inp
+Computation: 0.099599 seconds
+Computation: 0.061228 seconds
+
+custom6.inp
+Computation: 0.035474 seconds
+Computation: 0.017477 seconds
+
+input2D.inp
+Computation: 0.018561 seconds
+Computation: 0.014696 seconds
+
+input2D2.inp
+Computation: 0.000008 seconds
+Computation: 0.000088 seconds
+
+input10D.inp
+Computation: 0.003622 seconds
+Computation: 0.002135 seconds
+
+input20D.inp
+Computation: 0.204480 seconds
+Computation: 0.102341 seconds
+
+input100D.inp
+Computation: 0.951765 seconds
+Computation: 0.551785 seconds
+
+custom.inp
+Computation: 0.006385 seconds
+Computation: 0.003714 seconds
+
+custom2.inp
+Computation: 0.053809 seconds
+Computation: 0.035412 seconds
+
+custom3.inp
+Computation: 0.000105 seconds
+Computation: 0.000195 seconds
+
+custom4.inp
+Computation: 0.008181 seconds
+Computation: 0.006457 seconds
+
+custom5.inp
+Computation: 0.107628 seconds
+Computation: 0.062611 seconds
+
+custom6.inp
+Computation: 0.040944 seconds
+Computation: 0.020798 seconds
+
+input2D.inp
+Computation: 0.017895 seconds
+Computation: 0.013294 seconds
+
+input2D2.inp
+Computation: 0.000010 seconds
+Computation: 0.000094 seconds
+
+input10D.inp
+Computation: 0.003550 seconds
+Computation: 0.002346 seconds
+
+input20D.inp
+Computation: 0.176924 seconds
+Computation: 0.132230 seconds
+
+input100D.inp
+Computation: 1.004237 seconds
+Computation: 0.511543 seconds
+
+custom.inp
+Computation: 0.008241 seconds
+Computation: 0.004681 seconds
+
+custom2.inp
+Computation: 0.059635 seconds
+Computation: 0.044376 seconds
+
+custom3.inp
+Computation: 0.000106 seconds
+Computation: 0.000205 seconds
+
+custom4.inp
+Computation: 0.006659 seconds
+Computation: 0.005512 seconds
+
+custom5.inp
+Computation: 0.099408 seconds
+Computation: 0.062178 seconds
+
+custom6.inp
+Computation: 0.037828 seconds
+Computation: 0.023479 seconds
+
+input2D.inp
+Computation: 0.019646 seconds
+Computation: 0.014619 seconds
+
+input2D2.inp
+Computation: 0.000007 seconds
+Computation: 0.000149 seconds
+
+input10D.inp
+Computation: 0.002146 seconds
+Computation: 0.002177 seconds
+
+input20D.inp
+Computation: 0.199175 seconds
+Computation: 0.119650 seconds
+
+input100D.inp
+Computation: 0.951768 seconds
+Computation: 0.542611 seconds
+
+custom.inp
+Computation: 0.005774 seconds
+Computation: 0.004181 seconds
+
+custom2.inp
+Computation: 0.053653 seconds
+Computation: 0.035537 seconds
+
+custom3.inp
+Computation: 0.000079 seconds
+Computation: 0.000228 seconds
+
+custom4.inp
+Computation: 0.009390 seconds
+Computation: 0.004973 seconds
+
+custom5.inp
+Computation: 0.094140 seconds
+Computation: 0.087530 seconds
+
+custom6.inp
+Computation: 0.033059 seconds
+Computation: 0.022511 seconds
+
+input2D.inp
+Computation: 0.017947 seconds
+Computation: 0.014704 seconds
+
+input2D2.inp
+Computation: 0.000012 seconds
+Computation: 0.000079 seconds
+
+input10D.inp
+Computation: 0.001910 seconds
+Computation: 0.002129 seconds
+
+input20D.inp
+Computation: 0.182950 seconds
+Computation: 0.089899 seconds
+
+input100D.inp
+Computation: 0.937996 seconds
+Computation: 0.562825 seconds
+
+custom.inp
+Computation: 0.005875 seconds
+Computation: 0.004553 seconds
+
+custom2.inp
+Computation: 0.047729 seconds
+Computation: 0.033244 seconds
+
+custom3.inp
+Computation: 0.000104 seconds
+Computation: 0.000256 seconds
+
+custom4.inp
+Computation: 0.006679 seconds
+Computation: 0.004821 seconds
+
+custom5.inp
+Computation: 0.086855 seconds
+Computation: 0.057485 seconds
+
+custom6.inp
+Computation: 0.031347 seconds
+Computation: 0.019271 seconds
+
+input2D.inp
+Computation: 0.013734 seconds
+Computation: 0.009291 seconds
+
+input2D2.inp
+Computation: 0.000015 seconds
+Computation: 0.000098 seconds
+
+input10D.inp
+Computation: 0.003187 seconds
+Computation: 0.001335 seconds
+
+input20D.inp
+Computation: 0.150245 seconds
+Computation: 0.109217 seconds
+
+input100D.inp
+Computation: 0.860061 seconds
+Computation: 0.459639 seconds
+
+custom.inp
+Computation: 0.004571 seconds
+Computation: 0.004415 seconds
+
+custom2.inp
+Computation: 0.049961 seconds
+Computation: 0.028757 seconds
+
+custom3.inp
+Computation: 0.000081 seconds
+Computation: 0.000214 seconds
+
+custom4.inp
+Computation: 0.006055 seconds
+Computation: 0.004869 seconds
+
+custom5.inp
+Computation: 0.096362 seconds
+Computation: 0.060628 seconds
+
+custom6.inp
+Computation: 0.034488 seconds
+Computation: 0.022959 seconds
+
+input2D.inp
+Computation: 0.015324 seconds
+Computation: 0.014166 seconds
+
+input2D2.inp
+Computation: 0.000009 seconds
+Computation: 0.000084 seconds
+
+input10D.inp
+Computation: 0.003080 seconds
+Computation: 0.002163 seconds
+
+input20D.inp
+Computation: 0.280471 seconds
+Computation: 0.116186 seconds
+
+input100D.inp
+Computation: 0.801743 seconds
+Computation: 0.515449 seconds
+
+custom.inp
+Computation: 0.005957 seconds
+Computation: 0.004076 seconds
+
+custom2.inp
+Computation: 0.044336 seconds
+Computation: 0.033416 seconds
+
+custom3.inp
+Computation: 0.000072 seconds
+Computation: 0.000176 seconds
+
+custom4.inp
+Computation: 0.007036 seconds
+Computation: 0.005008 seconds
+
+custom5.inp
+Computation: 0.088540 seconds
+Computation: 0.060746 seconds
+
+custom6.inp
+Computation: 0.029012 seconds
+Computation: 0.025897 seconds
+
