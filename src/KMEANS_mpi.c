@@ -315,7 +315,7 @@ int main(int argc, char *argv[])
 	float dist, minDist;
 	int it = 0;
 	int changes = 0;
-	float maxDist;
+	float maxDist, localMaxDist;
 
 	// pointPerClass: number of points classified in each class
 	// auxCentroids: mean of the points in each class
@@ -334,14 +334,51 @@ int main(int argc, char *argv[])
 	 *
 	 */
 
-	int local_changes;
+	int r = lines % size;
 	int local_lines = lines / size;
+	if (rank < r)
+		local_lines++;
+	int local_changes;
 	float *local_data = (float *)malloc(local_lines * samples * sizeof(float));
 	int *local_classMap = (int *)malloc(local_lines * sizeof(int));
 	int *local_pointsPerClass = (int *)malloc(K * sizeof(int));
 	float *local_auxCentroids = (float *)malloc(K * samples * sizeof(float));
 
-	MPI_Scatter(data, local_lines * samples, MPI_FLOAT, local_data, local_lines * samples, MPI_FLOAT, 0, MPI_COMM_WORLD);
+	int *send_counts = (int *)malloc(size * sizeof(int));
+	int *displs_send = (int *)malloc(size * sizeof(int));
+	int *recv_counts = (int *)malloc(size * sizeof(int));
+	int *displs_recv = (int *)malloc(size * sizeof(int));
+	int *Kcounts = (int *)malloc(size * sizeof(int));
+	int *Kstarts = (int *)malloc(size * sizeof(int));
+	int *Kcounts_recv = (int *)malloc(size * sizeof(int));
+	int *Kstarts_displs = (int *)malloc(size * sizeof(int));
+	int start_index_send = 0;
+	int start_index_recv = 0;
+	int start_index_count = 0;
+	int start_index_count_recv = 0;
+	for (i = 0; i < size; i++)
+	{
+		Kcounts[i] = K / size;
+		send_counts[i] = lines / size;
+		if (i < (lines % size))
+			send_counts[i]++;
+		if (i < (K % size))
+			Kcounts[i]++;
+		Kcounts_recv[i] = Kcounts[i] * samples;
+		recv_counts[i] = send_counts[i];
+		send_counts[i] *= samples;
+		displs_send[i] = start_index_send;
+		displs_recv[i] = start_index_recv;
+		Kstarts[i] = start_index_count;
+		Kstarts_displs[i] = start_index_count_recv;
+		start_index_send += send_counts[i];
+		start_index_recv += recv_counts[i];
+		start_index_count += Kcounts[i];
+		start_index_count_recv += Kcounts_recv[i];
+	}
+
+	// MPI_Scatter(data, local_lines * samples, MPI_FLOAT, local_data, local_lines * samples, MPI_FLOAT, 0, MPI_COMM_WORLD);
+	MPI_Scatterv(data, send_counts, displs_send, MPI_FLOAT, local_data, send_counts[rank], MPI_FLOAT, 0, MPI_COMM_WORLD);
 
 	do
 	{
@@ -387,49 +424,36 @@ int main(int argc, char *argv[])
 				local_auxCentroids[(class - 1) * samples + j] += local_data[i * samples + j];
 			}
 		}
-		// printf("Stocazzooo %d\n", rank);
 
-		MPI_Reduce(local_pointsPerClass, pointsPerClass, K, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
-		MPI_Reduce(local_auxCentroids, auxCentroids, K * samples, MPI_FLOAT, MPI_SUM, 0, MPI_COMM_WORLD);
+		MPI_Allreduce(local_pointsPerClass, pointsPerClass, K, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+		MPI_Allreduce(local_auxCentroids, auxCentroids, K * samples, MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
+
+		localMaxDist = FLT_MIN;
+		for (i = Kstarts[rank]; i < Kstarts[rank] + Kcounts[rank]; i++)
+		{
+			for (j = 0; j < samples; j++)
+			{
+				auxCentroids[i * samples + j] /= pointsPerClass[i];
+			}
+			localMaxDist = MAX(euclideanDistance(&centroids[i * samples], &auxCentroids[i * samples], samples), localMaxDist);
+		}
+
+		MPI_Allgatherv(auxCentroids + Kstarts_displs[rank], Kcounts_recv[rank], MPI_FLOAT, auxCentroids, Kcounts_recv, Kstarts_displs, MPI_FLOAT, MPI_COMM_WORLD);
+		MPI_Allreduce(&localMaxDist, &maxDist, 1, MPI_FLOAT, MPI_MAX, MPI_COMM_WORLD);
 
 		if (rank == 0)
 		{
-			for (i = 0; i < K; i++)
-			{
-				for (j = 0; j < samples; j++)
-				{
-					auxCentroids[i * samples + j] /= pointsPerClass[i];
-				}
-			}
-
-			maxDist = FLT_MIN;
-			for (i = 0; i < K; i++)
-			{
-				distCentroids[i] = euclideanDistance(&centroids[i * samples], &auxCentroids[i * samples], samples);
-				if (distCentroids[i] > maxDist)
-				{
-					maxDist = distCentroids[i];
-				}
-			}
 			memcpy(centroids, auxCentroids, (K * samples * sizeof(float)));
-
 			sprintf(line, "\n[%d] Cluster changes: %d\tMax. centroid distance: %f", it, changes, maxDist);
 			outputMsg = strcat(outputMsg, line);
 		}
 		MPI_Bcast(centroids, K * samples, MPI_FLOAT, 0, MPI_COMM_WORLD);
-		MPI_Barrier(MPI_COMM_WORLD);
-		// printf("Changes: %d from: %d\n", changes, rank);
-		// printf("MaxDist: %f from: %d\n", maxDist, rank);
 		MPI_Bcast(&changes, 1, MPI_INT, 0, MPI_COMM_WORLD);
-		MPI_Bcast(&maxDist, 1, MPI_FLOAT, 0, MPI_COMM_WORLD);
+		// MPI_Bcast(&maxDist, 1, MPI_FLOAT, 0, MPI_COMM_WORLD);
+		// MPI_Barrier(MPI_COMM_WORLD);
 	} while ((changes > minChanges) && (it < maxIterations) && (maxDist > maxThreshold));
 
-	MPI_Gather(local_classMap, local_lines, MPI_INT, classMap, local_lines, MPI_INT, 0, MPI_COMM_WORLD);
-
-	free(local_data);
-	free(local_classMap);
-	free(local_pointsPerClass);
-	free(local_auxCentroids);
+	MPI_Gatherv(local_classMap, local_lines, MPI_INT, classMap, recv_counts, displs_recv, MPI_INT, 0, MPI_COMM_WORLD);
 
 	/*
 	 *
@@ -441,6 +465,7 @@ int main(int argc, char *argv[])
 		printf("%s", outputMsg);
 
 	// END CLOCK*****************************************
+	MPI_Barrier(MPI_COMM_WORLD);
 	end = MPI_Wtime();
 	if (rank == 0)
 		printf("\nComputation: %f seconds", end - start);
@@ -485,6 +510,18 @@ int main(int argc, char *argv[])
 	free(distCentroids);
 	free(pointsPerClass);
 	free(auxCentroids);
+	free(local_data);
+	free(local_classMap);
+	free(local_pointsPerClass);
+	free(local_auxCentroids);
+	free(send_counts);
+	free(displs_send);
+	free(recv_counts);
+	free(displs_recv);
+	free(Kcounts);
+	free(Kstarts);
+	free(Kcounts_recv);
+	free(Kstarts_displs);
 
 	// END CLOCK*****************************************
 	end = MPI_Wtime();

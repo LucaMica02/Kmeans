@@ -6,7 +6,7 @@ test="$2"
 echo "KMEANS_seq"
 ./KMEANS_seq test_files/$test 16 100 0.001 0.001 seq_result.txt
 echo -e "\n################################################\n$exe"
-mpiexec -n 2 ./$exe test_files/$test 16 100 0.001 0.001 result.txt
+mpiexec -n 4 ./$exe test_files/$test 16 100 0.001 0.001 result.txt
 
 # check for correctness
 python3 check.py
