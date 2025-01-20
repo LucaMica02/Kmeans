@@ -370,22 +370,20 @@ int main(int argc, char *argv[])
 			}
 		}
 
-#pragma omp parallel for
+		maxDist = FLT_MIN;
+#pragma omp parallel for reduction(max : maxDist)
 		for (i = 0; i < K; i++)
 		{
 			for (j = 0; j < samples; j++)
 			{
 				auxCentroids[i * samples + j] /= pointsPerClass[i];
+				if (j == samples - 1)
+				{
+					maxDist = MAX(euclideanDistance(&centroids[i * samples], &auxCentroids[i * samples], samples), maxDist);
+				}
 			}
 		}
 
-		maxDist = FLT_MIN;
-#pragma omp parallel for reduction(max : maxDist)
-		for (i = 0; i < K; i++)
-		{
-			distCentroids[i] = euclideanDistance(&centroids[i * samples], &auxCentroids[i * samples], samples);
-			maxDist = MAX(distCentroids[i], maxDist);
-		}
 		memcpy(centroids, auxCentroids, (K * samples * sizeof(float)));
 
 		sprintf(line, "\n[%d] Cluster changes: %d\tMax. centroid distance: %f", it, changes, maxDist);

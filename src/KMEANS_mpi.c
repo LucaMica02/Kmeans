@@ -438,16 +438,16 @@ int main(int argc, char *argv[])
 			localMaxDist = MAX(euclideanDistance(&centroids[i * samples], &auxCentroids[i * samples], samples), localMaxDist);
 		}
 
-		MPI_Allgatherv(auxCentroids + Kstarts_displs[rank], Kcounts_recv[rank], MPI_FLOAT, auxCentroids, Kcounts_recv, Kstarts_displs, MPI_FLOAT, MPI_COMM_WORLD);
+		MPI_Allgatherv(auxCentroids + Kstarts_displs[rank], Kcounts_recv[rank], MPI_FLOAT, centroids, Kcounts_recv, Kstarts_displs, MPI_FLOAT, MPI_COMM_WORLD);
 		MPI_Allreduce(&localMaxDist, &maxDist, 1, MPI_FLOAT, MPI_MAX, MPI_COMM_WORLD);
 
 		if (rank == 0)
 		{
-			memcpy(centroids, auxCentroids, (K * samples * sizeof(float)));
+			// memcpy(centroids, auxCentroids, (K * samples * sizeof(float)));
 			sprintf(line, "\n[%d] Cluster changes: %d\tMax. centroid distance: %f", it, changes, maxDist);
 			outputMsg = strcat(outputMsg, line);
 		}
-		MPI_Bcast(centroids, K * samples, MPI_FLOAT, 0, MPI_COMM_WORLD);
+		// MPI_Bcast(centroids, K * samples, MPI_FLOAT, 0, MPI_COMM_WORLD);
 		MPI_Bcast(&changes, 1, MPI_INT, 0, MPI_COMM_WORLD);
 		// MPI_Bcast(&maxDist, 1, MPI_FLOAT, 0, MPI_COMM_WORLD);
 		// MPI_Barrier(MPI_COMM_WORLD);
