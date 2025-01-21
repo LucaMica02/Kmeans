@@ -171,6 +171,7 @@ This function could be modified
 float euclideanDistance(float *point, float *center, int samples)
 {
     float dist = 0.0;
+    // #pragma omp parallel for reduction(+ : dist)
     for (int i = 0; i < samples; i++)
     {
         dist += (point[i] - center[i]) * (point[i] - center[i]);
@@ -186,6 +187,7 @@ This function could be modified
 void zeroFloatMatriz(float *matrix, int rows, int columns)
 {
     int i, j;
+#pragma omp parallel for collapse(2)
     for (i = 0; i < rows; i++)
         for (j = 0; j < columns; j++)
             matrix[i * columns + j] = 0.0;
@@ -198,6 +200,7 @@ This function could be modified
 void zeroIntArray(int *array, int size)
 {
     int i;
+#pragma omp parallel for
     for (i = 0; i < size; i++)
         array[i] = 0;
 }
@@ -389,7 +392,7 @@ int main(int argc, char *argv[])
         if (rank == 0)
             changes = 0;
         local_changes = 0;
-#pragma omp parallel for private(minDist, class)
+#pragma omp parallel for private(minDist, class) // reduction(+ : local_changes)
         for (i = 0; i < local_lines; i++)
         {
             class = 1;
@@ -438,9 +441,8 @@ int main(int argc, char *argv[])
             for (j = 0; j < samples; j++)
             {
                 auxCentroids[i * samples + j] /= pointsPerClass[i];
-                if (j == samples - 1)
-                    localMaxDist = MAX(euclideanDistance(&centroids[i * samples], &auxCentroids[i * samples], samples), localMaxDist);
             }
+            localMaxDist = MAX(euclideanDistance(&centroids[i * samples], &auxCentroids[i * samples], samples), localMaxDist);
         }
 
         MPI_Allgatherv(auxCentroids + Kstarts_displs[rank], Kcounts_recv[rank], MPI_FLOAT, centroids, Kcounts_recv, Kstarts_displs, MPI_FLOAT, MPI_COMM_WORLD);

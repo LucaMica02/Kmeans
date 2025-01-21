@@ -377,11 +377,8 @@ int main(int argc, char *argv[])
 			for (j = 0; j < samples; j++)
 			{
 				auxCentroids[i * samples + j] /= pointsPerClass[i];
-				if (j == samples - 1)
-				{
-					maxDist = MAX(euclideanDistance(&centroids[i * samples], &auxCentroids[i * samples], samples), maxDist);
-				}
 			}
+			maxDist = MAX(euclideanDistance(&centroids[i * samples], &auxCentroids[i * samples], samples), maxDist);
 		}
 
 		memcpy(centroids, auxCentroids, (K * samples * sizeof(float)));
