@@ -1,24 +1,23 @@
 custom_tests/2D/input6.inp
-Computation: 0.418550 seconds
-Computation: 0.793790 seconds
+Computation: 0.747303 seconds
+Computation: 0.550432 seconds
 
 custom_tests/10D/input6.inp
-Computation: 0.807988 seconds
-Computation: 0.394573 seconds
+Computation: 1.614359 seconds
+Computation: 0.609037 seconds
 
 custom_tests/20D/input6.inp
-Computation: 1.438878 seconds
-Computation: 1.354144 seconds
+Computation: 2.536059 seconds
+Computation: 0.504328 seconds
 
 custom_tests/50D/input6.inp
-Computation: 4.290920 seconds
-Computation: 2.515990 seconds
+Computation: 6.661582 seconds
+Computation: 0.690927 seconds
 
 custom_tests/100D/input6.inp
-Computation: 10.621723 seconds
-Computation: 3.647742 seconds
+Computation: 13.611422 seconds
+Computation: 0.998851 seconds
 
 custom_tests/200D/input6.inp
-Computation: 25.156127 seconds
-Computation: 6.246085 seconds
-
+Computation: 31.868921 seconds
+Computation: 1.200277 seconds
