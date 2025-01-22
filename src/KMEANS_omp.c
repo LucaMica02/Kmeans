@@ -174,7 +174,9 @@ float euclideanDistance(float *point, float *center, int samples)
 	// #pragma omp parallel for reduction(+ : dist)
 	for (int i = 0; i < samples; i++)
 	{
-		dist += (point[i] - center[i]) * (point[i] - center[i]);
+		// dist += (point[i] - center[i]) * (point[i] - center[i]);
+		float diff = point[i] - center[i];
+		dist = fmaf(diff, diff, dist);
 	}
 	dist = sqrt(dist);
 	return (dist);

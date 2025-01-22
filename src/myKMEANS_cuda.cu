@@ -463,7 +463,7 @@ int main(int argc, char *argv[])
         computeCentroidMovement<<<gridSize, blockSize>>>(centroids_d, auxCentroids_d, distCentroids_d, samples, K);
 
         // Copy maxDist to host
-        cudaMemcpy(distCentroids, distCentroids_d, K * sizeof(float), cudaMemcpyDeviceToHost);
+        CHECK_CUDA_CALL(cudaMemcpy(distCentroids, distCentroids_d, K * sizeof(float), cudaMemcpyDeviceToHost));
         maxDist = distCentroids[0];
         for (int i = 1; i < K; i++)
         {
@@ -471,7 +471,7 @@ int main(int argc, char *argv[])
         }
 
         // Update centroids for next iteration
-        cudaMemcpy(centroids_d, auxCentroids_d, K * samples * sizeof(float), cudaMemcpyDeviceToDevice);
+        CHECK_CUDA_CALL(cudaMemcpy(centroids_d, auxCentroids_d, K * samples * sizeof(float), cudaMemcpyDeviceToDevice));
 
         sprintf(line, "\n[%d] Cluster changes: %d\tMax. centroid distance: %f", it, changes, maxDist);
         outputMsg = strcat(outputMsg, line);
@@ -520,13 +520,13 @@ int main(int argc, char *argv[])
     }
 
     // Free device memory
-    cudaFree(data_d);
-    cudaFree(centroids_d);
-    cudaFree(classMap_d);
-    cudaFree(pointsPerClass_d);
-    cudaFree(auxCentroids_d);
-    cudaFree(distCentroids_d);
-    cudaFree(changes_d);
+    CHECK_CUDA_CALL(cudaFree(data_d));
+    CHECK_CUDA_CALL(cudaFree(centroids_d));
+    CHECK_CUDA_CALL(cudaFree(classMap_d));
+    CHECK_CUDA_CALL(cudaFree(pointsPerClass_d));
+    CHECK_CUDA_CALL(cudaFree(auxCentroids_d));
+    CHECK_CUDA_CALL(cudaFree(distCentroids_d));
+    CHECK_CUDA_CALL(cudaFree(changes_d));
 
     // Free host memory
     free(data);
