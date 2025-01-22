@@ -19,7 +19,7 @@ FLAGS=-O3 -Wall
 LIBS=-lm
 
 # Targets to build
-OBJS=KMEANS_seq KMEANS_omp KMEANS_mpi KMEANS_cuda
+OBJS=KMEANS_seq KMEANS_omp KMEANS_mpi KMEANS_hybrid myKMEANS_cuda
 
 # Rules. By default show help
 help:
@@ -53,6 +53,9 @@ KMEANS_hybrid: KMEANS_hybrid.c
 	$(MPICC) $(FLAGS) $(DEBUG) $(OMPFLAG) $< $(LIBS) -o $@
 
 KMEANS_cuda: KMEANS_cuda.cu
+	$(CUDACC) $(DEBUG) $< $(LIBS) -o $@
+
+KMEANS_mycuda: myKMEANS_cuda.cu
 	$(CUDACC) $(DEBUG) $< $(LIBS) -o $@
 
 
