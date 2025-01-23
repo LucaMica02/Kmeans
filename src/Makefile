@@ -16,10 +16,11 @@ CUDACC=nvcc
 
 # Flags for optimization and libs
 FLAGS=-O3 -Wall
+FLAGS_CUDA=-O3 --fmad=false
 LIBS=-lm
 
 # Targets to build
-OBJS=KMEANS_seq KMEANS_omp KMEANS_mpi KMEANS_hybrid myKMEANS_cuda
+OBJS=KMEANS_seq KMEANS_omp KMEANS_mpi KMEANS_hybrid KMEANS_cuda
 
 # Rules. By default show help
 help:
@@ -53,11 +54,7 @@ KMEANS_hybrid: KMEANS_hybrid.c
 	$(MPICC) $(FLAGS) $(DEBUG) $(OMPFLAG) $< $(LIBS) -o $@
 
 KMEANS_cuda: KMEANS_cuda.cu
-	$(CUDACC) $(DEBUG) $< $(LIBS) -o $@
-
-KMEANS_mycuda: myKMEANS_cuda.cu
-	$(CUDACC) $(DEBUG) $< $(LIBS) -o $@
-
+	$(CUDACC) $(DEBUG) $(FLAGS_CUDA) $< $(LIBS) -o $@
 
 # Remove the target files
 clean:

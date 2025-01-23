@@ -185,7 +185,7 @@ void initCentroids(const float *data, float *centroids, int *centroidPos, int sa
 Function euclideanDistance: Euclidean distance
 This function could be modified
 */
-float euclideanDistance(float *point, float *center, int samples)
+__device__ float euclideanDistance(float *point, float *center, int samples)
 {
 	float dist = 0.0;
 	for (int i = 0; i < samples; i++)
@@ -217,6 +217,72 @@ void zeroIntArray(int *array, int size)
 	int i;
 	for (i = 0; i < size; i++)
 		array[i] = 0;
+}
+
+// KERNEL FUNCTION
+__global__ void assignPointsToCentroids(float *data, float *centroids, int *classMap, float *auxCentroids, int *pointsPerClass, int lines, int samples, int K, int *changes)
+{
+	extern __shared__ float sharedMemory[]; // Shared memory declaration
+
+	// Pointers for shared memory
+	float *sharedCentroids = sharedMemory;
+
+	int tid = threadIdx.x;
+	int idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+	// Load centroids into shared memory
+	for (int i = tid; i < K * samples; i += blockDim.x)
+	{
+		sharedCentroids[i] = centroids[i];
+	}
+	__syncthreads(); // Ensure all threads have loaded centroids
+
+	if (idx < lines)
+	{
+
+		// Calculate the closest centroid
+		int cluster = 1;
+		float minDist = FLT_MAX;
+
+		for (int j = 0; j < K; j++)
+		{
+			float dist = euclideanDistance(&data[idx * samples], &sharedCentroids[j * samples], samples);
+			if (dist < minDist)
+			{
+				minDist = dist;
+				cluster = j + 1;
+			}
+		}
+
+		if (classMap[idx] != cluster)
+		{
+			atomicAdd(changes, 1);
+		}
+
+		classMap[idx] = cluster;
+		cluster--;
+		atomicAdd(&pointsPerClass[cluster], 1);
+		for (int j = 0; j < samples; j++)
+		{
+			atomicAdd(&auxCentroids[cluster * samples + j], data[idx * samples + j]);
+		}
+	}
+}
+
+__global__ void normalizeCentroids(float *centroids, float *auxCentroids, float *distCentroids, int *pointsPerClass, int samples, int K)
+{
+	int idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+	if (idx < K * samples)
+	{
+		int cluster = idx / samples;
+		auxCentroids[idx] /= pointsPerClass[cluster];
+	}
+
+	if (idx < K)
+	{
+		distCentroids[idx] = euclideanDistance(&centroids[idx * samples], &auxCentroids[idx * samples], samples);
+	}
 }
 
 int main(int argc, char *argv[])
@@ -320,9 +386,6 @@ int main(int argc, char *argv[])
 	char *outputMsg = (char *)calloc(10000, sizeof(char));
 	char line[100];
 
-	int j;
-	int cluster;
-	float dist, minDist;
 	int it = 0;
 	int changes = 0;
 	float maxDist;
@@ -344,62 +407,63 @@ int main(int argc, char *argv[])
 	 *
 	 */
 
+	int *changes_d;
+	float *data_d, *centroids_d, *auxCentroids_d, *distCentroids_d;
+	int *classMap_d, *pointsPerClass_d;
+
+	// Allocate device memory
+	CHECK_CUDA_CALL(cudaMalloc((void **)&data_d, lines * samples * sizeof(float)));
+	CHECK_CUDA_CALL(cudaMalloc((void **)&centroids_d, K * samples * sizeof(float)));
+	CHECK_CUDA_CALL(cudaMalloc((void **)&classMap_d, lines * sizeof(int)));
+	CHECK_CUDA_CALL(cudaMalloc((void **)&pointsPerClass_d, K * sizeof(int)));
+	CHECK_CUDA_CALL(cudaMalloc((void **)&auxCentroids_d, K * samples * sizeof(float)));
+	CHECK_CUDA_CALL(cudaMalloc((void **)&distCentroids_d, K * sizeof(float)));
+	CHECK_CUDA_CALL(cudaMalloc((void **)&changes_d, sizeof(int)));
+
+	// Copy memory from host to device
+	CHECK_CUDA_CALL(cudaMemcpy(data_d, data, lines * samples * sizeof(float), cudaMemcpyHostToDevice));
+	CHECK_CUDA_CALL(cudaMemcpy(centroids_d, centroids, K * samples * sizeof(float), cudaMemcpyHostToDevice));
+	CHECK_CUDA_CALL(cudaMemcpy(classMap_d, classMap, lines * sizeof(int), cudaMemcpyHostToDevice));
+	CHECK_CUDA_CALL(cudaMemcpy(pointsPerClass_d, pointsPerClass, K * sizeof(int), cudaMemcpyHostToDevice));
+	CHECK_CUDA_CALL(cudaMemcpy(auxCentroids_d, auxCentroids, K * samples * sizeof(float), cudaMemcpyHostToDevice));
+	CHECK_CUDA_CALL(cudaMemcpy(distCentroids_d, distCentroids, K * sizeof(float), cudaMemcpyHostToDevice));
+
 	do
 	{
 		it++;
 
-		// 1. Calculate the distance from each point to the centroid
-		// Assign each point to the nearest centroid.
-		changes = 0;
-		for (i = 0; i < lines; i++)
-		{
-			cluster = 1;
-			minDist = FLT_MAX;
-			for (j = 0; j < K; j++)
-			{
-				dist = euclideanDistance(&data[i * samples], &centroids[j * samples], samples);
+		// Reset changes on device
+		cudaMemset(changes_d, 0, sizeof(int));
+		cudaMemset(pointsPerClass_d, 0, K * sizeof(int));
+		cudaMemset(auxCentroids_d, 0, K * samples * sizeof(float));
 
-				if (dist < minDist)
-				{
-					minDist = dist;
-					cluster = j + 1;
-				}
-			}
-			if (classMap[i] != cluster)
-			{
-				changes++; // atomic add
-			}
-			classMap[i] = cluster;
+		// 1. Calculate the distance from each point to the centroid and assign to nearest centroid
+		int blockSize = 32;
+		int gridSize = (lines + blockSize - 1) / blockSize;
+		int sharedMemorySize = (K * samples) * sizeof(float);
+		assignPointsToCentroids<<<gridSize, blockSize, sharedMemorySize>>>(data_d, centroids_d, classMap_d, auxCentroids_d, pointsPerClass_d, lines, samples, K, changes_d);
+
+		// Copy the number of changes back to host
+		cudaMemcpy(&changes, changes_d, sizeof(int), cudaMemcpyDeviceToHost);
+
+		// Normalize centroids
+		gridSize = (K * samples + blockSize - 1) / blockSize;
+		normalizeCentroids<<<gridSize, blockSize, 2>>>(centroids_d, auxCentroids_d, distCentroids_d, pointsPerClass_d, samples, K);
+
+		// 3. Calculate maximum distance moved by centroids
+		// gridSize = (K + blockSize - 1) / blockSize;
+		// computeCentroidMovement<<<gridSize, blockSize, 2>>>(centroids_d, auxCentroids_d, distCentroids_d, samples, K);
+
+		// Copy maxDist to host
+		CHECK_CUDA_CALL(cudaMemcpy(distCentroids, distCentroids_d, K * sizeof(float), cudaMemcpyDeviceToHost));
+		maxDist = distCentroids[0];
+		for (int i = 1; i < K; i++)
+		{
+			maxDist = MAX(maxDist, distCentroids[i]);
 		}
 
-		// 2. Recalculates the centroids: calculates the mean within each cluster
-		zeroIntArray(pointsPerClass, K);
-		zeroFloatMatriz(auxCentroids, K, samples);
-
-		// collect data
-		for (i = 0; i < lines; i++)
-		{
-			cluster = classMap[i];
-			pointsPerClass[cluster - 1]++; // atomic add
-			for (j = 0; j < samples; j++)
-			{
-				auxCentroids[(cluster - 1) * samples + j] += data[i * samples + j]; // atomic add
-			}
-		}
-
-		// calculate the mean
-		maxDist = FLT_MIN;
-		for (i = 0; i < K; i++)
-		{
-			for (j = 0; j < samples; j++)
-			{
-				auxCentroids[i * samples + j] /= pointsPerClass[i];
-			}
-			// atomic in some wayy
-			maxDist = MAX(maxDist, euclideanDistance(&centroids[i * samples], &auxCentroids[i * samples], samples));
-		}
-
-		memcpy(centroids, auxCentroids, (K * samples * sizeof(float)));
+		// Update centroids for next iteration
+		CHECK_CUDA_CALL(cudaMemcpy(centroids_d, auxCentroids_d, K * samples * sizeof(float), cudaMemcpyDeviceToDevice));
 
 		sprintf(line, "\n[%d] Cluster changes: %d\tMax. centroid distance: %f", it, changes, maxDist);
 		outputMsg = strcat(outputMsg, line);
@@ -447,7 +511,16 @@ int main(int argc, char *argv[])
 		exit(error);
 	}
 
-	// Free memory
+	// Free device memory
+	CHECK_CUDA_CALL(cudaFree(data_d));
+	CHECK_CUDA_CALL(cudaFree(centroids_d));
+	CHECK_CUDA_CALL(cudaFree(classMap_d));
+	CHECK_CUDA_CALL(cudaFree(pointsPerClass_d));
+	CHECK_CUDA_CALL(cudaFree(auxCentroids_d));
+	CHECK_CUDA_CALL(cudaFree(distCentroids_d));
+	CHECK_CUDA_CALL(cudaFree(changes_d));
+
+	// Free host memory
 	free(data);
 	free(classMap);
 	free(centroidPos);
