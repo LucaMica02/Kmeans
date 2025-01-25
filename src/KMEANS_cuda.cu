@@ -22,6 +22,7 @@
 #include <string.h>
 #include <float.h>
 #include <cuda.h>
+#include <cuda_runtime.h>
 
 #define MAXLINE 2000
 #define MAXCAD 200
@@ -195,7 +196,6 @@ __device__ float euclideanDistance(float *point, float *center, int samples)
 	dist = sqrt(dist);
 	return (dist);
 }
-
 /*
 Function zeroFloatMatriz: Set matrix elements to 0
 This function could be modified
@@ -220,12 +220,14 @@ void zeroIntArray(int *array, int size)
 }
 
 // KERNEL FUNCTION
-__global__ void assignPointsToCentroids(float *data, float *centroids, int *classMap, float *auxCentroids, int *pointsPerClass, int lines, int samples, int K, int *changes)
+__global__ void assignPointsToCentroidsSM(float *data, float *centroids, int *classMap, float *auxCentroids, int *pointsPerClass, int lines, int samples, int K, int *changes)
 {
 	extern __shared__ float sharedMemory[]; // Shared memory declaration
 
 	// Pointers for shared memory
 	float *sharedCentroids = sharedMemory;
+	int *sharedChanges = (int *)&sharedMemory[K * samples];
+	int *sharedPointsPerClass = (int *)&sharedMemory[K * samples + 1];
 
 	int tid = threadIdx.x;
 	int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -235,7 +237,17 @@ __global__ void assignPointsToCentroids(float *data, float *centroids, int *clas
 	{
 		sharedCentroids[i] = centroids[i];
 	}
-	__syncthreads(); // Ensure all threads have loaded centroids
+	for (int i = tid; i < K; i += blockDim.x)
+	{
+		sharedPointsPerClass[i] = 0;
+	}
+	__syncthreads();
+
+	if (tid == 0)
+	{
+		*sharedChanges = 0; // Only the first thread initializes
+	}
+	__syncthreads();
 
 	if (idx < lines)
 	{
@@ -256,32 +268,123 @@ __global__ void assignPointsToCentroids(float *data, float *centroids, int *clas
 
 		if (classMap[idx] != cluster)
 		{
+			atomicAdd(sharedChanges, 1);
+		}
+
+		classMap[idx] = cluster;
+		atomicAdd(&sharedPointsPerClass[cluster - 1], 1);
+		for (int j = 0; j < samples; j++)
+		{
+			atomicAdd(&auxCentroids[(cluster - 1) * samples + j], data[idx * samples + j]);
+		}
+	}
+	__syncthreads();
+
+	for (int i = tid; i < K; i += blockDim.x)
+	{
+		atomicAdd(&pointsPerClass[i], sharedPointsPerClass[i]);
+	}
+	__syncthreads();
+
+	if (tid == 0)
+	{
+		atomicAdd(changes, *sharedChanges);
+	}
+}
+
+__global__ void assignPointsToCentroids(float *data, float *centroids, int *classMap, float *auxCentroids, int *pointsPerClass, int lines, int samples, int K, int *changes)
+{
+	int idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+	if (idx < lines)
+	{
+
+		// Calculate the closest centroid
+		int cluster = 1;
+		float minDist = FLT_MAX;
+
+		for (int j = 0; j < K; j++)
+		{
+			float dist = euclideanDistance(&data[idx * samples], &centroids[j * samples], samples);
+			if (dist < minDist)
+			{
+				minDist = dist;
+				cluster = j + 1;
+			}
+		}
+
+		if (classMap[idx] != cluster)
+		{
 			atomicAdd(changes, 1);
 		}
 
 		classMap[idx] = cluster;
-		cluster--;
-		atomicAdd(&pointsPerClass[cluster], 1);
+		atomicAdd(&pointsPerClass[cluster - 1], 1);
 		for (int j = 0; j < samples; j++)
 		{
-			atomicAdd(&auxCentroids[cluster * samples + j], data[idx * samples + j]);
+			atomicAdd(&auxCentroids[(cluster - 1) * samples + j], data[idx * samples + j]);
 		}
 	}
 }
 
 __global__ void normalizeCentroids(float *centroids, float *auxCentroids, float *distCentroids, int *pointsPerClass, int samples, int K)
 {
+	extern __shared__ int sharedPointsPerClass[];
+
+	int tid = threadIdx.x;
 	int idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+	for (int i = tid; i < K; i += blockDim.x)
+	{
+		sharedPointsPerClass[i] = pointsPerClass[i];
+	}
+	__syncthreads();
 
 	if (idx < K * samples)
 	{
 		int cluster = idx / samples;
-		auxCentroids[idx] /= pointsPerClass[cluster];
+		auxCentroids[idx] /= sharedPointsPerClass[cluster];
 	}
+	__syncthreads();
 
 	if (idx < K)
 	{
 		distCentroids[idx] = euclideanDistance(&centroids[idx * samples], &auxCentroids[idx * samples], samples);
+	}
+}
+
+__global__ void maxReduction(float *input, float *output, int n)
+{
+	extern __shared__ float sharedData[];
+
+	int tid = threadIdx.x;					 // local id
+	int idx = blockIdx.x * blockDim.x + tid; // global id
+
+	// load elements into shared memory, or set to a very low value if out of bounds
+	if (idx < n)
+	{
+		sharedData[tid] = input[idx];
+	}
+	else
+	{
+		sharedData[tid] = FLT_MIN;
+	}
+	__syncthreads();
+
+	// reduction in shared memory
+	for (int stride = blockDim.x / 2; stride > 0; stride /= 2)
+	{
+		if (tid < stride)
+		{
+			sharedData[tid] = MAX(sharedData[tid], sharedData[tid + stride]);
+		}
+		__syncthreads();
+	}
+
+	// Write the block's maximum to the output
+	if (tid == 0)
+	{
+		output[blockIdx.x] = sharedData[0];
 	}
 }
 
@@ -407,9 +510,15 @@ int main(int argc, char *argv[])
 	 *
 	 */
 
+	int device, sharedMemPerBlock;
+	cudaDeviceProp prop;
 	int *changes_d;
 	float *data_d, *centroids_d, *auxCentroids_d, *distCentroids_d;
 	int *classMap_d, *pointsPerClass_d;
+
+	CHECK_CUDA_CALL(cudaGetDevice(&device));
+	CHECK_CUDA_CALL(cudaGetDeviceProperties(&prop, device));
+	CHECK_CUDA_CALL(cudaDeviceGetAttribute(&sharedMemPerBlock, cudaDevAttrMaxSharedMemoryPerBlock, device));
 
 	// Allocate device memory
 	CHECK_CUDA_CALL(cudaMalloc((void **)&data_d, lines * samples * sizeof(float)));
@@ -438,29 +547,32 @@ int main(int argc, char *argv[])
 		cudaMemset(auxCentroids_d, 0, K * samples * sizeof(float));
 
 		// 1. Calculate the distance from each point to the centroid and assign to nearest centroid
-		int blockSize = 32;
+		int blockSize = 64;
 		int gridSize = (lines + blockSize - 1) / blockSize;
-		int sharedMemorySize = (K * samples) * sizeof(float);
-		assignPointsToCentroids<<<gridSize, blockSize, sharedMemorySize>>>(data_d, centroids_d, classMap_d, auxCentroids_d, pointsPerClass_d, lines, samples, K, changes_d);
+		int sharedMemorySize = (K * samples * sizeof(float)) + sizeof(int) + (K * sizeof(int));
+		if (sharedMemorySize < sharedMemPerBlock)
+		{
+			assignPointsToCentroidsSM<<<gridSize, blockSize, sharedMemorySize>>>(data_d, centroids_d, classMap_d, auxCentroids_d, pointsPerClass_d, lines, samples, K, changes_d);
+		}
+		else
+		{
+			assignPointsToCentroids<<<gridSize, blockSize>>>(data_d, centroids_d, classMap_d, auxCentroids_d, pointsPerClass_d, lines, samples, K, changes_d);
+		}
 
 		// Copy the number of changes back to host
-		cudaMemcpy(&changes, changes_d, sizeof(int), cudaMemcpyDeviceToHost);
+		CHECK_CUDA_CALL(cudaMemcpy(&changes, changes_d, sizeof(int), cudaMemcpyDeviceToHost));
 
 		// Normalize centroids
 		gridSize = (K * samples + blockSize - 1) / blockSize;
-		normalizeCentroids<<<gridSize, blockSize, 2>>>(centroids_d, auxCentroids_d, distCentroids_d, pointsPerClass_d, samples, K);
+		sharedMemorySize = K * sizeof(int);
+		normalizeCentroids<<<gridSize, blockSize, sharedMemorySize>>>(centroids_d, auxCentroids_d, distCentroids_d, pointsPerClass_d, samples, K);
 
-		// 3. Calculate maximum distance moved by centroids
-		// gridSize = (K + blockSize - 1) / blockSize;
-		// computeCentroidMovement<<<gridSize, blockSize, 2>>>(centroids_d, auxCentroids_d, distCentroids_d, samples, K);
+		gridSize = (K + blockSize - 1) / blockSize;
+		maxReduction<<<gridSize, blockSize, blockSize * sizeof(float)>>>(distCentroids_d, distCentroids_d, K);
+		maxReduction<<<1, gridSize, gridSize * sizeof(float)>>>(distCentroids_d, distCentroids_d, gridSize);
 
 		// Copy maxDist to host
-		CHECK_CUDA_CALL(cudaMemcpy(distCentroids, distCentroids_d, K * sizeof(float), cudaMemcpyDeviceToHost));
-		maxDist = distCentroids[0];
-		for (int i = 1; i < K; i++)
-		{
-			maxDist = MAX(maxDist, distCentroids[i]);
-		}
+		CHECK_CUDA_CALL(cudaMemcpy(&maxDist, distCentroids_d, sizeof(float), cudaMemcpyDeviceToHost));
 
 		// Update centroids for next iteration
 		CHECK_CUDA_CALL(cudaMemcpy(centroids_d, auxCentroids_d, K * samples * sizeof(float), cudaMemcpyDeviceToDevice));

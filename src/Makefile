@@ -16,7 +16,7 @@ CUDACC=nvcc
 
 # Flags for optimization and libs
 FLAGS=-O3 -Wall
-FLAGS_CUDA=-O3 --fmad=false
+FLAGS_CUDA=-O3 --fmad=false # -Xptxas -dlcm=cg
 LIBS=-lm
 
 # Targets to build
