@@ -336,11 +336,12 @@ int main(int argc, char *argv[])
      * START HERE: DO NOT CHANGE THE CODE ABOVE THIS POINT
      *
      */
-
     int r = lines % size;
     int local_lines = lines / size;
     if (rank < r)
+    {
         local_lines++;
+    }
     int local_changes;
     float *local_data = (float *)malloc(local_lines * samples * sizeof(float));
     int *local_classMap = (int *)malloc(local_lines * sizeof(int));
@@ -407,6 +408,7 @@ int main(int argc, char *argv[])
                     class = j + 1;
                 }
             }
+
             if (local_classMap[i] != class)
             {
 #pragma omp atomic

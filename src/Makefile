@@ -16,7 +16,7 @@ CUDACC=nvcc
 
 # Flags for optimization and libs
 FLAGS=-O3 -Wall
-FLAGS_CUDA=-O3 --fmad=false # -Xptxas -dlcm=cg
+FLAGS_CUDA=-O3 --fmad=false 
 LIBS=-lm
 
 # Targets to build
@@ -50,7 +50,7 @@ KMEANS_omp: KMEANS_omp.c
 KMEANS_mpi: KMEANS_mpi.c
 	$(MPICC) $(FLAGS) $(DEBUG) $< $(LIBS) -o $@
 
-KMEANS_hybrid: KMEANS_hybrid.c
+KMEANS_mpi+omp: KMEANS_mpi+omp.c
 	$(MPICC) $(FLAGS) $(DEBUG) $(OMPFLAG) $< $(LIBS) -o $@
 
 KMEANS_cuda: KMEANS_cuda.cu
