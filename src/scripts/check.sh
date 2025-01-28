@@ -25,7 +25,7 @@ echo -e "\n################################################\n$exe"
 # run the parallel executable
 case "$1" in
   "KMEANS_mpi+omp")
-    OMP_NUM_THREADS=$nOMP mpirun --bind-to none -n $nMPI ./KMEANS_mpi+omp $test 32 100 0.001 0.001 result.txt
+    OMP_NUM_THREADS=$nOMP mpirun -n $nMPI ./KMEANS_mpi+omp $test 32 100 0.001 0.001 result.txt
     ;;
   "KMEANS_mpi")
     mpirun -n $nMPI ./KMEANS_mpi $test 32 100 0.001 0.001 result.txt

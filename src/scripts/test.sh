@@ -1,6 +1,6 @@
 #!/bin/bash
 
-N=90
+N=60
 
 for ((i=0; i<N; i++))
 do
