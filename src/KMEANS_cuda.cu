@@ -166,6 +166,22 @@ int writeResult(int *classMap, int lines, const char *filename)
 	}
 }
 
+int writeTime(double time, const char *filename)
+{
+	FILE *fp;
+
+	if ((fp = fopen(filename, "a")) != NULL)
+	{
+		fprintf(fp, "%f\n", time);
+		fclose(fp);
+		return 0;
+	}
+	else
+	{
+		return -3; // No file found
+	}
+}
+
 /*
 
 Function initCentroids: This function copies the values of the initial centroids, using their
@@ -410,7 +426,7 @@ int main(int argc, char *argv[])
 	 *          algorithm stops.
 	 * argv[6]: Output file. Class assigned to each point of the input file.
 	 * */
-	if (argc != 7)
+	if (argc != 8)
 	{
 		fprintf(stderr, "EXECUTION ERROR K-MEANS: Parameters are not correct.\n");
 		fprintf(stderr, "./KMEANS [Input Filename] [Number of clusters] [Number of iterations] [Number of changes] [Threshold] [Output data file]\n");
@@ -547,7 +563,7 @@ int main(int argc, char *argv[])
 		cudaMemset(auxCentroids_d, 0, K * samples * sizeof(float));
 
 		// 1. Calculate the distance from each point to the centroid and assign to nearest centroid
-		int blockSize = 64;
+		int blockSize = 32;
 		int gridSize = (lines + blockSize - 1) / blockSize;
 		int sharedMemorySize = (K * samples * sizeof(float)) + sizeof(int) + (K * sizeof(int));
 		if (sharedMemorySize < sharedMemPerBlock)
@@ -595,6 +611,7 @@ int main(int argc, char *argv[])
 	// END CLOCK*****************************************
 	end = clock();
 	elapsed = (double)(end - start) / CLOCKS_PER_SEC;
+	writeTime(elapsed, argv[7]);
 	printf("\nComputation: %f seconds", elapsed);
 	fflush(stdout);
 	//**************************************************

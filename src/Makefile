@@ -20,7 +20,7 @@ FLAGS_CUDA=-O3 --fmad=false
 LIBS=-lm
 
 # Targets to build
-OBJS=KMEANS_seq KMEANS_omp KMEANS_mpi KMEANS_hybrid KMEANS_cuda
+OBJS=KMEANS_seq KMEANS_omp KMEANS_mpi KMEANS_mpi+omp KMEANS_cuda
 
 # Rules. By default show help
 help:

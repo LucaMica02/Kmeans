@@ -2,7 +2,9 @@
 
 # take the argument
 exe="$1" 
-test="$2" 
+test="$2"
+nOMP="$3"
+nMPI="$4" 
 
 # check if arguments are passed
 if [ -z "$exe" ]; then
@@ -23,13 +25,13 @@ echo -e "\n################################################\n$exe"
 # run the parallel executable
 case "$1" in
   "KMEANS_mpi+omp")
-    OMP_NUM_THREADS=2 mpirun --bind-to none -n 4 ./KMEANS_mpi+omp $test 32 100 0.001 0.001 result.txt
+    OMP_NUM_THREADS=$nOMP mpirun --bind-to none -n $nMPI ./KMEANS_mpi+omp $test 32 100 0.001 0.001 result.txt
     ;;
   "KMEANS_mpi")
-    mpirun -n 4 ./KMEANS_mpi $test 32 100 0.001 0.001 result.txt
+    mpirun -n $nMPI ./KMEANS_mpi $test 32 100 0.001 0.001 result.txt
     ;;
   "KMEANS_omp")
-    OMP_NUM_THREADS=8 ./KMEANS_omp $test 32 100 0.001 0.001 result.txt
+    OMP_NUM_THREADS=$nOMP ./KMEANS_omp $test 32 100 0.001 0.001 result.txt
     ;;
   "KMEANS_cuda")
     ./KMEANS_cuda $test 32 100 0.001 0.001 result.txt
